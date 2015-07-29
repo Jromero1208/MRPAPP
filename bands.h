@@ -16,7 +16,7 @@
 #include "SrRuO.h"
 
 namespace rpa {
-	extern "C" void 
+	extern "C" void
 #ifdef glyph
 	zheev_
 #else
@@ -27,9 +27,9 @@ namespace rpa {
 						  int *,double *,int *);
 	inline void GEEV(char jobvl,char jobvr,int n,psimag::Matrix<std::complex<double> > &A, int lda,
 					 std::vector<double>  &w,std::vector<std::complex<double> > &work,
-					 int lwork,std::vector<double> &rwork,int *info) 
+					 int lwork,std::vector<double> &rwork,int *info)
 					 {
-#ifdef glyph						
+#ifdef glyph
 						zheev_
 #else
 						zheev
@@ -55,7 +55,7 @@ namespace rpa {
 		std::vector<size_t> orb1,orb2;
 
 
-		
+
 	public:
 		FieldType nbands;
 		MatrixType bandsEk;
@@ -69,18 +69,18 @@ namespace rpa {
 			nbands(param.nOrb),
 			bandsEk(0,0),
 			bandsAk(0)
-		
+
 		{
 			if (param.tbfile!="") readCSVFile();
 			if (param.sublattice==1) fixdr();
 		}
-		
+
 		void calcBandsKMesh(const size_t nk, const size_t nkz, const size_t dim,
 			                const FieldType& kxmin, const FieldType& kxmax,
 			                const FieldType& kymin, const FieldType& kymax,
 			                const FieldType& kzmin, const FieldType& kzmax,
 			                const size_t saveBands=0) {
-			
+
 			std::cout << "Calculating band structure \n";
 
 			std::vector<FieldType> ek(param.nOrb);
@@ -111,13 +111,13 @@ namespace rpa {
 				std::vector<FieldType> k(3);
 				momentumDomain1.momenta.getRow(ik,k);
 				calcBandsK(k,ek,ak);
-				// if (conc.rank()==0 && k[2]==0.0) std::cout << "k=(" << k[0] << " , " << k[1] << " , " << k[2] << "; ek2 = " << ek[1] << "\n"; 
+				// if (conc.rank()==0 && k[2]==0.0) std::cout << "k=(" << k[0] << " , " << k[1] << " , " << k[2] << "; ek2 = " << ek[1] << "\n";
 				for (size_t i = 0; i < param.nOrb; ++i) {
 					ekFull(ik,i) = ek[i];
 					bandsEk(ik,i) = ek[i];
 					for (size_t j=0;j<param.nOrb;j++) bandsAk[ik](i,j) = ak(i,j);
 				}
-				
+
 				for (int i=0;i<nbands;i++) occupation[i] += fermi(ek[i],1./param.temperature);
 			}
 			conc.reduce(ekFull);
@@ -184,7 +184,7 @@ namespace rpa {
 				for (int i = 0; i < nLines; ++i)
 				{
 					if (orb1[i]<=orb2[i]) {
-						exponent = (ks[0]*dx[i] + ks[1]*dy[i] + ks[2]*dz[i]); 
+						exponent = (ks[0]*dx[i] + ks[1]*dy[i] + ks[2]*dz[i]);
 						eigenvects(orb1[i],orb2[i]) += ht[i] * ComplexType(cos(exponent),sin(exponent));
 					}
 				}
@@ -199,7 +199,7 @@ namespace rpa {
 				s.getBands(k,eigenvals,eigenvects);
 			}
 		}
-		
+
 		inline FieldType fermi(const FieldType& energy, const FieldType& invT) {
 			FieldType xx=energy*invT;
 			FieldType f;
@@ -210,7 +210,7 @@ namespace rpa {
 		}
 
 		FieldType fermiVelocity2D(VectorType& k, size_t band) {
-			
+
 			std::vector<FieldType> ekpx(param.nOrb);
 			std::vector<FieldType> ekpy(param.nOrb);
 			std::vector<FieldType> ekmx(param.nOrb);
@@ -233,10 +233,10 @@ namespace rpa {
 			calcBandsK(kpy,ekpy,ak);
 			calcBandsK(kmx,ekmx,ak);
 			calcBandsK(kmy,ekmy,ak);
-	           
+
 		    FieldType rx=(ekpx[band]-ekmx[band])/(2.*dk);
 		    FieldType ry=(ekpy[band]-ekmy[band])/(2.*dk);
-    
+
 		    FieldType vel = sqrt(pow(rx,2)+pow(ry,2));
 
 		    // std::cout << "vel in fermiVelocity2D:"<< vel << ","<<rx<<","<<ry<<"\n";
@@ -291,30 +291,9 @@ namespace rpa {
 			}
 		}
 
-		
+
 	};
 
 }
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -5,7 +5,7 @@
 #include "Matrix.h"
 #include <vector>
 
-extern "C" void 
+extern "C" void
 #ifdef glyph
 	zgemm_
 #else
@@ -15,15 +15,15 @@ extern "C" void
 					  std::complex<double> *,int *,std::complex<double> *,
 					  int *,std::complex<double> *,std::complex<double> *,int *);
 
-extern "C" void 
+extern "C" void
 #ifdef glyph
 	dgetrf_
 #else
 	dgetrf
 #endif
 	(int *,int *,double *,int *,int *,int *);
-	
-	extern "C" void 
+
+	extern "C" void
 #ifdef glyph
 	dgetri_
 #else
@@ -31,23 +31,23 @@ extern "C" void
 #endif
 	(int *, double *, int *, int *, double *, int *, int *);
 
-inline void GETRF(int m, int n, 
- 			      psimag::Matrix<double> &a,int lda, 
- 			      std::vector<int> &ipiv, int *info) 
+inline void GETRF(int m, int n,
+ 			      psimag::Matrix<double> &a,int lda,
+ 			      std::vector<int> &ipiv, int *info)
 				 {
-#ifdef glyph						
+#ifdef glyph
 				dgetrf_
 #else
 				dgetrf
 #endif
 					(&m,&n,&(a(0,0)),&lda,&(ipiv[0]),info);
 				}
-inline void GETRI(int m, 
-			      psimag::Matrix<double> &a, int lda, 
-			      std::vector<int> &ipiv, 
-				  psimag::Matrix<double> &work, int lwork, int *info) 
+inline void GETRI(int m,
+			      psimag::Matrix<double> &a, int lda,
+			      std::vector<int> &ipiv,
+				  psimag::Matrix<double> &work, int lwork, int *info)
 				 {
-#ifdef glyph						
+#ifdef glyph
 				dgetri_
 #else
 				dgetri
@@ -55,15 +55,15 @@ inline void GETRI(int m,
 					(&m,&(a(0,0)),&lda,&(ipiv[0]),&(work(0,0)),&lwork,info);
 				}
 
-extern "C" void 
+extern "C" void
 #ifdef glyph
 	zgetrf_
 #else
 	zgetrf
 #endif
 	(int *,int *,std::complex<double> *,int *,int *,int *);
-	
-	extern "C" void 
+
+	extern "C" void
 #ifdef glyph
 	zgetri_
 #else
@@ -71,23 +71,23 @@ extern "C" void
 #endif
 	(int *, std::complex<double> *, int *, int *, std::complex<double> *, int *, int *);
 
-inline void GETRF(int m, int n, 
- 			      psimag::Matrix<std::complex<double> > &a,int lda, 
- 			      std::vector<int> &ipiv, int *info) 
+inline void GETRF(int m, int n,
+ 			      psimag::Matrix<std::complex<double> > &a,int lda,
+ 			      std::vector<int> &ipiv, int *info)
 				 {
-#ifdef glyph						
+#ifdef glyph
 				zgetrf_
 #else
 				zgetrf
 #endif
 					(&m,&n,&(a(0,0)),&lda,&(ipiv[0]),info);
 				}
-inline void GETRI(int m, 
-			      psimag::Matrix<std::complex<double> > &a, int lda, 
-			      std::vector<int> &ipiv, 
-				  psimag::Matrix<std::complex<double> > &work, int lwork, int *info) 
+inline void GETRI(int m,
+			      psimag::Matrix<std::complex<double> > &a, int lda,
+			      std::vector<int> &ipiv,
+				  psimag::Matrix<std::complex<double> > &work, int lwork, int *info)
 				 {
-#ifdef glyph						
+#ifdef glyph
 				zgetri_
 #else
 				zgetri
@@ -150,7 +150,7 @@ std::ostream& operator<<(std::ostream& os,std::vector<FieldType>& v)
 // 		{
 // 			size_t ind1(l1+l1*param.nOrb);
 // 			size_t ind2(l2+l2*param.nOrb);
-// 			chiPhys += 0.5*real(chi(ind1,ind2)) ; 
+// 			chiPhys += 0.5*real(chi(ind1,ind2)) ;
 // 		}
 // 	}
 // 	FieldType factor(1.0);
@@ -176,8 +176,8 @@ void loadVector(std::vector<FieldType>& v,const std::string& myfile)
 		char c;
 		fin.get(c);
 		if (c==',' || c=='\n') {
-			if (hasNonBlank(buffer)) 
-			v.push_back(atof(buffer.c_str())); // use atoi for ints
+			if (hasNonBlank(buffer))
+				v.push_back(atof(buffer.c_str())); // use atoi for ints
 			buffer="";
 		} else {
 			buffer = buffer + c;
@@ -194,7 +194,7 @@ std::ostream& operator<<(std::ostream& os, std::vector<MatrixTemplate<std::compl
 	size_t nel(v.size());
 	size_t nrow(v[0].n_row());
 	size_t ncol(v[0].n_col());
-	
+
 	for (size_t i=0;i<nel;i++) {
 		for (size_t j=0;j<nrow;j++) {
 			for (size_t k=0;k<ncol;k++) {
@@ -213,7 +213,7 @@ std::istream& operator>>(std::istream& is, std::vector<MatrixTemplate<std::compl
 	size_t nel(v.size());
 	size_t nrow(v[0].n_row());
 	size_t ncol(v[0].n_col());
-	
+
 	for (size_t i=0;i<nel;i++) {
 		for (size_t j=0;j<nrow;j++) {
 			for (size_t k=0;k<ncol;k++) {

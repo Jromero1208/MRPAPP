@@ -7,14 +7,14 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include "ConcurrencyMpi.h"
+//#include "ConcurrencyMpi.h"
 
 
 
 namespace rpa {
 	template<typename Field, template<typename> class MatrixTemplate, typename ConcurrencyType>
 	class parameters {
-	
+
 	private:
 		ConcurrencyType& conc;
 	public:
@@ -29,6 +29,7 @@ namespace rpa {
 		std::vector<Field> a1,a2,a3;
 		std::vector<Field> chia1,chia2,chia3;
 		size_t nqx,nqy,nqz;
+		bool Qmesh;
 		Field qxmin,qxmax,qymin,qymax,qzmin,qzmax;
 		size_t nw;
 		Field wmin,wmax;
@@ -40,13 +41,19 @@ namespace rpa {
 		size_t nwn;
 		std::string Case;
 		size_t dimension;
-		size_t nkInt; 
-		size_t nkIntz; 
+		size_t nkInt;
+		size_t nkIntz;
 		Field kz2D;
 		size_t FSnkz;
+		bool Green;
 		size_t nOrb;
+		size_t nSite;
+		size_t nOrbSite;
 		Field  mu;
+		//std::vector<std::string> tbfile;
 		std::string tbfile;
+		size_t NumTB;
+		std::string Gfile;
 		std::string fsfile;
 		bool readFSFromFile;
 		size_t nkPerSheet;
@@ -83,7 +90,7 @@ namespace rpa {
 
 
 		parameters(ConcurrencyType& concurrency):
-			conc(concurrency), 
+			conc(concurrency),
 			temperature(1.0),
 			pi_f(3.141592653589793238462643383),
 			U(1.1),
@@ -114,6 +121,7 @@ namespace rpa {
 			nqx(1),
 			nqy(1),
 			nqz(1),
+			Qmesh(1),
 			qxmin(0.0),
 			qxmax(0.0),
 			qymin(0.0),
@@ -135,9 +143,15 @@ namespace rpa {
 			nkIntz(16),
 			kz2D(0.0),
 			FSnkz(10),
+			Green(0),
 			nOrb(1),
+			nSite(1),
+			nOrbSite(1),
 			mu(-0.1),
 			tbfile(""),
+			NumTB(1),
+
+			Gfile(""),
 			fsfile("FSforPairing.dat"),
 			readFSFromFile(0),
 			nkPerSheet(40),
@@ -153,8 +167,8 @@ namespace rpa {
 			interpolateNqx(17),
 			interpolateNqz(5),
 			sublattice(0),
-			deltax(0.0), 
-			deltay(0.0), 
+			deltax(0.0),
+			deltay(0.0),
 			deltaz(0.0),
 			kTrafo(0),
 			options(""),
@@ -177,8 +191,8 @@ namespace rpa {
 			// mu(-0.1),
 			// tbfile("1band_AB_t.csv"),
 			// sublattice(1),
-			// deltax(0.0), 
-			// deltay(0.0), 
+			// deltax(0.0),
+			// deltay(0.0),
 			// deltaz(0.0)
 
 			// 2-orbital model (by Raghu)
@@ -188,8 +202,8 @@ namespace rpa {
 			// mu(1.45),
 			// tbfile("2band.csv"),
 			// sublattice(0),
-			// deltax(0.0), 
-			// deltay(0.0), 
+			// deltax(0.0),
+			// deltay(0.0),
 			// deltaz(0.0)
 
 			// 10-orbital model for LaOFeAs
@@ -199,8 +213,8 @@ namespace rpa {
 			 // mu(11.60),
 			 // tbfile("tij_LaOFeAs.csv"),
 			 // sublattice(1),
-			 // deltax(0.5), 
-			 // deltay(0.5), 
+			 // deltax(0.5),
+			 // deltay(0.5),
 			 // deltaz(0.0)
 
 			// 10-orbital model for FeSe
@@ -210,8 +224,8 @@ namespace rpa {
 			// mu(0.0),
 			// tbfile("fese_ab_strain_dx_00_000pc.dat"),
 			// sublattice(1),
-			// deltax(0.0), 
-			// deltay(0.0), 
+			// deltax(0.0),
+			// deltay(0.0),
 			// deltaz(0.0)
 
 			{
@@ -227,7 +241,7 @@ namespace rpa {
 			void readFromInputFile(const std::string& file) {
 				if (conc.rank()==0) {
 					std::ifstream data(file.c_str());
-					
+
 					std::string line;
 				    while(std::getline(data,line)) {
 				        std::stringstream    str(line);
@@ -236,7 +250,7 @@ namespace rpa {
 				        setParamBasedOnText(text,str);
 					}
 				}
-				
+
 				conc.barrier();
 				broadcastParam();
 				// bcTest();
@@ -262,84 +276,93 @@ namespace rpa {
 			}
 
 			void setParamBasedOnText(std::string& text, std::stringstream& str) {
-		        if      (text.find("dimension")!=std::string::npos) str >> (*this).dimension; 
-		        else if (text.find("temperature")!=std::string::npos) str >> (*this).temperature; 
-		        else if (text.find("numberOfOrbitals")!=std::string::npos) str >> (*this).nOrb; 
-		        else if (text.find("chemicalPotential")!=std::string::npos) str >> (*this).mu; 
-		        else if (text.find("tbParametersFile")!=std::string::npos) str >> (*this).tbfile; 
-		        else if (text.find("complexHopping")!=std::string::npos) str >> (*this).complexHopping; 
-		        else if (text.find("FSforPairingFile")!=std::string::npos) str >> (*this).fsfile; 
-		        else if (text.find("ChiForPairingFile")!=std::string::npos) str >> (*this).chifile; 
-		        else if (text.find("interpolateChi")!=std::string::npos) str >> (*this).interpolateChi; 
-		        else if (text.find("interpolateNqx")!=std::string::npos) str >> (*this).interpolateNqx; 
-		        else if (text.find("interpolateNqz")!=std::string::npos) str >> (*this).interpolateNqz; 
-		        else if (text.find("Coulomb1U")!=std::string::npos) str >> (*this).U; 
-		        else if (text.find("Coulomb2Up")!=std::string::npos) str >> (*this).Up; 
-		        else if (text.find("Coulomb3J")!=std::string::npos) str >> (*this).J; 
-		        else if (text.find("Coulomb4Jp")!=std::string::npos) str >> (*this).Jp; 
-		        else if (text.find("Coulomb5U_d")!=std::string::npos) str >> (*this).U_d_c; 
-		        else if (text.find("Coulomb6U_p")!=std::string::npos) str >> (*this).U_p_c; 
-		        else if (text.find("Coulomb7U_pd")!=std::string::npos) str >> (*this).U_pd_c; 
-		        else if (text.find("Coulomb8U_pp")!=std::string::npos) str >> (*this).U_pp_c; 
-		        else if (text.find("Coulomb9U_d")!=std::string::npos) str >> (*this).U_d_s; 
-		        else if (text.find("Coulomb10U_p")!=std::string::npos) str >> (*this).U_p_s; 
-		        else if (text.find("Coulomb11U_pd")!=std::string::npos) str >> (*this).U_pd_s; 
-		        else if (text.find("Coulomb12U_pp")!=std::string::npos) str >> (*this).U_pp_s; 
-		        else if (text.find("Coulomb13U_d_coupl")!=std::string::npos) str >> (*this).U_d_coupl; 
-		        else if (text.find("Coulomb14U_p_coupl")!=std::string::npos) str >> (*this).U_p_coupl; 
-		        else if (text.find("Coulomb15U_pd_coupl")!=std::string::npos) str >> (*this).U_pd_coupl; 
-		        else if (text.find("Coulomb16U_pp_coupl")!=std::string::npos) str >> (*this).U_pp_coupl; 
-		        else if (text.find("sublattice")!=std::string::npos) str >> (*this).sublattice; 
-		        else if (text.find("deltaU0")!=std::string::npos) str >> (*this).deltaU[0]; 
-		        else if (text.find("deltaU1")!=std::string::npos) str >> (*this).deltaU[1]; 
-		        else if (text.find("deltaU2")!=std::string::npos) str >> (*this).deltaU[2]; 
-		        else if (text.find("deltaU3")!=std::string::npos) str >> (*this).deltaU[3]; 
-		        else if (text.find("deltaU4")!=std::string::npos) str >> (*this).deltaU[4]; 
-		        else if (text.find("staticUFactor")!=std::string::npos) str >> (*this).staticUFactor; 				
-		        else if (text.find("chargeFactor")!=std::string::npos) str >> (*this).chargeFactor; 				
-		        else if (text.find("nkIntegration")!=std::string::npos) str >> (*this).nkInt; 				
-		        else if (text.find("nkzIntegration")!=std::string::npos) str >> (*this).nkIntz; 				
-		        else if (text.find("kz2D")!=std::string::npos) str >> (*this).kz2D; 				
-		        else if (text.find("a1x")!=std::string::npos) str >> (*this).a1[0]; 				
-		        else if (text.find("a1y")!=std::string::npos) str >> (*this).a1[1]; 				
-		        else if (text.find("a1z")!=std::string::npos) str >> (*this).a1[2]; 				
-		        else if (text.find("a2x")!=std::string::npos) str >> (*this).a2[0]; 				
-		        else if (text.find("a2y")!=std::string::npos) str >> (*this).a2[1]; 				
-		        else if (text.find("a2z")!=std::string::npos) str >> (*this).a2[2]; 				
-		        else if (text.find("a3x")!=std::string::npos) str >> (*this).a3[0]; 				
-		        else if (text.find("a3y")!=std::string::npos) str >> (*this).a3[1]; 				
-		        else if (text.find("a3z")!=std::string::npos) str >> (*this).a3[2]; 				
-		        else if (text.find("c1x")!=std::string::npos) str >> (*this).chia1[0]; 				
-		        else if (text.find("c1y")!=std::string::npos) str >> (*this).chia1[1]; 				
-		        else if (text.find("c1z")!=std::string::npos) str >> (*this).chia1[2]; 				
-		        else if (text.find("c2x")!=std::string::npos) str >> (*this).chia2[0]; 				
-		        else if (text.find("c2y")!=std::string::npos) str >> (*this).chia2[1]; 				
-		        else if (text.find("c2z")!=std::string::npos) str >> (*this).chia2[2]; 				
-		        else if (text.find("c3x")!=std::string::npos) str >> (*this).chia3[0]; 				
-		        else if (text.find("c3y")!=std::string::npos) str >> (*this).chia3[1]; 				
-		        else if (text.find("c3z")!=std::string::npos) str >> (*this).chia3[2]; 				
-		        else if (text.find("nqx")!=std::string::npos) str >> (*this).nqx; 				
-		        else if (text.find("nqy")!=std::string::npos) str >> (*this).nqy; 				
-		        else if (text.find("nqz")!=std::string::npos) str >> (*this).nqz; 				
+				std::string tmp;
+		        if      (text.find("dimension")!=std::string::npos) str >> (*this).dimension;
+		        else if (text.find("temperature")!=std::string::npos) str >> (*this).temperature;
+		        else if (text.find("numberOfOrbitals")!=std::string::npos) str >> (*this).nOrb;
+		        else if (text.find("numberOfSites")!=std::string::npos) str >> (*this).nSite;
+		        else if (text.find("numberOfOrbitalPerSite")!=std::string::npos) str >> (*this).nOrbSite;
+		        else if (text.find("chemicalPotential")!=std::string::npos) str >> (*this).mu;
+						//else if (text.find("tbParametersFile")!=std::string::npos){ str >> tmp; (*this).tbfile.push_back(tmp);}
+						else if (text.find("tbParametersFile")!=std::string::npos) str >> (*this).tbfile;
+						else if (text.find("NumbertbParameterFiles")!=std::string::npos) str >> (*this).NumTB;
+		        else if (text.find("GreensFunctionFile")!=std::string::npos) str >> (*this).Gfile;
+		        else if (text.find("complexHopping")!=std::string::npos) str >> (*this).complexHopping;
+		        else if (text.find("FSforPairingFile")!=std::string::npos) str >> (*this).fsfile;
+		        else if (text.find("ChiForPairingFile")!=std::string::npos) str >> (*this).chifile;
+		        else if (text.find("interpolateChi")!=std::string::npos) str >> (*this).interpolateChi;
+		        else if (text.find("interpolateNqx")!=std::string::npos) str >> (*this).interpolateNqx;
+		        else if (text.find("interpolateNqz")!=std::string::npos) str >> (*this).interpolateNqz;
+		        else if (text.find("Coulomb1U")!=std::string::npos) str >> (*this).U;
+		        else if (text.find("Coulomb2Up")!=std::string::npos) str >> (*this).Up;
+		        else if (text.find("Coulomb3J")!=std::string::npos) str >> (*this).J;
+		        else if (text.find("Coulomb4Jp")!=std::string::npos) str >> (*this).Jp;
+		        else if (text.find("Coulomb5U_d")!=std::string::npos) str >> (*this).U_d_c;
+		        else if (text.find("Coulomb6U_p")!=std::string::npos) str >> (*this).U_p_c;
+		        else if (text.find("Coulomb7U_pd")!=std::string::npos) str >> (*this).U_pd_c;
+		        else if (text.find("Coulomb8U_pp")!=std::string::npos) str >> (*this).U_pp_c;
+		        else if (text.find("Coulomb9U_d")!=std::string::npos) str >> (*this).U_d_s;
+		        else if (text.find("Coulomb10U_p")!=std::string::npos) str >> (*this).U_p_s;
+		        else if (text.find("Coulomb11U_pd")!=std::string::npos) str >> (*this).U_pd_s;
+		        else if (text.find("Coulomb12U_pp")!=std::string::npos) str >> (*this).U_pp_s;
+		        else if (text.find("Coulomb13U_d_coupl")!=std::string::npos) str >> (*this).U_d_coupl;
+		        else if (text.find("Coulomb14U_p_coupl")!=std::string::npos) str >> (*this).U_p_coupl;
+		        else if (text.find("Coulomb15U_pd_coupl")!=std::string::npos) str >> (*this).U_pd_coupl;
+		        else if (text.find("Coulomb16U_pp_coupl")!=std::string::npos) str >> (*this).U_pp_coupl;
+		        else if (text.find("sublattice")!=std::string::npos) str >> (*this).sublattice;
+		        else if (text.find("deltaU0")!=std::string::npos) str >> (*this).deltaU[0];
+		        else if (text.find("deltaU1")!=std::string::npos) str >> (*this).deltaU[1];
+		        else if (text.find("deltaU2")!=std::string::npos) str >> (*this).deltaU[2];
+		        else if (text.find("deltaU3")!=std::string::npos) str >> (*this).deltaU[3];
+		        else if (text.find("deltaU4")!=std::string::npos) str >> (*this).deltaU[4];
+		        else if (text.find("staticUFactor")!=std::string::npos) str >> (*this).staticUFactor;
+		        else if (text.find("chargeFactor")!=std::string::npos) str >> (*this).chargeFactor;
+		        else if (text.find("nkIntegration")!=std::string::npos) str >> (*this).nkInt;
+		        else if (text.find("nkzIntegration")!=std::string::npos) str >> (*this).nkIntz;
+		        else if (text.find("kz2D")!=std::string::npos) str >> (*this).kz2D;
+		        else if (text.find("a1x")!=std::string::npos) str >> (*this).a1[0];
+		        else if (text.find("a1y")!=std::string::npos) str >> (*this).a1[1];
+		        else if (text.find("a1z")!=std::string::npos) str >> (*this).a1[2];
+		        else if (text.find("a2x")!=std::string::npos) str >> (*this).a2[0];
+		        else if (text.find("a2y")!=std::string::npos) str >> (*this).a2[1];
+		        else if (text.find("a2z")!=std::string::npos) str >> (*this).a2[2];
+		        else if (text.find("a3x")!=std::string::npos) str >> (*this).a3[0];
+		        else if (text.find("a3y")!=std::string::npos) str >> (*this).a3[1];
+		        else if (text.find("a3z")!=std::string::npos) str >> (*this).a3[2];
+		        else if (text.find("c1x")!=std::string::npos) str >> (*this).chia1[0];
+		        else if (text.find("c1y")!=std::string::npos) str >> (*this).chia1[1];
+		        else if (text.find("c1z")!=std::string::npos) str >> (*this).chia1[2];
+		        else if (text.find("c2x")!=std::string::npos) str >> (*this).chia2[0];
+		        else if (text.find("c2y")!=std::string::npos) str >> (*this).chia2[1];
+		        else if (text.find("c2z")!=std::string::npos) str >> (*this).chia2[2];
+		        else if (text.find("c3x")!=std::string::npos) str >> (*this).chia3[0];
+		        else if (text.find("c3y")!=std::string::npos) str >> (*this).chia3[1];
+		        else if (text.find("c3z")!=std::string::npos) str >> (*this).chia3[2];
+						else if (text.find("Qmesh")!=std::string::npos) str >> (*this).Qmesh;
+		        else if (text.find("nqx")!=std::string::npos) str >> (*this).nqx;
+		        else if (text.find("nqy")!=std::string::npos) str >> (*this).nqy;
+		        else if (text.find("nqz")!=std::string::npos) str >> (*this).nqz;
 		        else if (text.find("qxmin")!=std::string::npos) {str >> (*this).qxmin; qxmin *= pi_f;}
 		        else if (text.find("qxmax")!=std::string::npos) {str >> (*this).qxmax; qxmax *= pi_f;}
-		        else if (text.find("qymin")!=std::string::npos) {str >> (*this).qymin; qymin *= pi_f;}				
-		        else if (text.find("qymax")!=std::string::npos) {str >> (*this).qymax; qymax *= pi_f;}				
-		        else if (text.find("qzmin")!=std::string::npos) {str >> (*this).qzmin; qzmin *= pi_f;}				
-		        else if (text.find("qzmax")!=std::string::npos) {str >> (*this).qzmax; qzmax *= pi_f;}				
-		        else if (text.find("nw")!=std::string::npos) str >> (*this).nw; 				
-		        else if (text.find("wmin")!=std::string::npos) str >> (*this).wmin; 				
-		        else if (text.find("wmax")!=std::string::npos) str >> (*this).wmax; 				
-		        else if (text.find("scState")!=std::string::npos) str >> (*this).scState; 				
-		        else if (text.find("printGap")!=std::string::npos) str >> (*this).printGap; 				
-		        else if (text.find("gAmpl")!=std::string::npos) str >> (*this).gAmpl; 				
-		        else if (text.find("Delta0")!=std::string::npos) str >> (*this).Delta0; 				
-		        else if (text.find("deltax")!=std::string::npos) str >> (*this).deltax; 				
-		        else if (text.find("deltay")!=std::string::npos) str >> (*this).deltay; 				
-		        else if (text.find("deltaz")!=std::string::npos) str >> (*this).deltaz; 				
-		        else if (text.find("kTrafo")!=std::string::npos) str >> (*this).kTrafo; 				
-		        else if (text.find("options")!=std::string::npos) str >> (*this).options; 				
-		        else if (text.find("subOptions")!=std::string::npos) str >> (*this).subOptions; 				
+		        else if (text.find("qymin")!=std::string::npos) {str >> (*this).qymin; qymin *= pi_f;}
+		        else if (text.find("qymax")!=std::string::npos) {str >> (*this).qymax; qymax *= pi_f;}
+		        else if (text.find("qzmin")!=std::string::npos) {str >> (*this).qzmin; qzmin *= pi_f;}
+		        else if (text.find("qzmax")!=std::string::npos) {str >> (*this).qzmax; qzmax *= pi_f;}
+		        else if (text.find("nwn")!=std::string::npos) str >> (*this).nwn;
+		        else if (text.find("nw")!=std::string::npos) str >> (*this).nw;
+		        else if (text.find("wmin")!=std::string::npos) str >> (*this).wmin;
+		        else if (text.find("wmax")!=std::string::npos) str >> (*this).wmax;
+		        else if (text.find("scState")!=std::string::npos) str >> (*this).scState;
+		        else if (text.find("printGap")!=std::string::npos) str >> (*this).printGap;
+		        else if (text.find("gAmpl")!=std::string::npos) str >> (*this).gAmpl;
+		        else if (text.find("Delta0")!=std::string::npos) str >> (*this).Delta0;
+		        else if (text.find("deltax")!=std::string::npos) str >> (*this).deltax;
+		        else if (text.find("deltay")!=std::string::npos) str >> (*this).deltay;
+		        else if (text.find("deltaz")!=std::string::npos) str >> (*this).deltaz;
+		        else if (text.find("kTrafo")!=std::string::npos) str >> (*this).kTrafo;
+		        else if (text.find("Green")!=std::string::npos) str >> (*this).Green;
+		        else if (text.find("options")!=std::string::npos) str >> (*this).options;
+		        else if (text.find("subOptions")!=std::string::npos) str >> (*this).subOptions;
 		        else if (text.find("Case")!=std::string::npos) str >> (*this).Case;
 		        else if (text.find("pairingSpinParity")!=std::string::npos) str >> (*this).pairingSpinParity;
 		        else if (text.find("pairingFromSpin")!=std::string::npos) str >> (*this).pairingFromSpin;
@@ -365,8 +388,14 @@ namespace rpa {
 				os << "dimension = " << (*this).dimension << "\n";
 				os << "temperature = " << (*this).temperature << "\n";
 				os << "numberOfOrbitals = " << (*this).nOrb << "\n";
+				os << "numberOfSites = " << (*this).nSite << "\n";
+				os << "numberOfOrbitalPerSite = " << (*this).nOrbSite << "\n";
 				os << "chemicalPotential = " << (*this).mu << "\n";
-				os << "tbParametersFile = " << (*this).tbfile << "\n";
+			//	for (size_t i = 0; i < NumTB; i++) {
+					os << "tbParametersFile = " << (*this).tbfile << "\n";
+				//}
+				os << "NumbertbParameterFiles = " << (*this).NumTB << "\n";
+				os << "GreensFunctionFile = " << (*this).Gfile << "\n";
 				os << "complexHopping = " << (*this).complexHopping << "\n";
 				os << "FSforPairingFile = " << (*this).fsfile << "\n";
 				os << "pairingSpinParity = " << (*this).pairingSpinParity << "\n";
@@ -424,6 +453,7 @@ namespace rpa {
 				os << "chia3x = " << (*this).chia3[0] << "\n";
 				os << "chia3y = " << (*this).chia3[1] << "\n";
 				os << "chia3z = " << (*this).chia3[2] << "\n";
+				os << "Qmesh = " << (*this).Qmesh << "\n";
 				os << "nqx = " << (*this).nqx << "\n";
 				os << "nqy = " << (*this).nqy << "\n";
 				os << "nqz = " << (*this).nqz << "\n";
@@ -433,6 +463,8 @@ namespace rpa {
 				os << "qymax = " << (*this).qymax << "\n";
 				os << "qzmin = " << (*this).qzmin << "\n";
 				os << "qzmax = " << (*this).qzmax << "\n";
+				os << "nwn = " << (*this).nwn << "\n";
+				os << "Green = " << (*this).Green << "\n";
 				os << "nw = " << (*this).nw << "\n";
 				os << "wmin = " << (*this).wmin << "\n";
 				os << "wmax = " << (*this).wmax << "\n";
@@ -463,90 +495,98 @@ namespace rpa {
 			void bcTest() {
 				int h(0);
 				if (conc.rank()==0) h=5;
-		        conc.broadcast(h); 
+		        conc.broadcast(h);
 			}
 			void broadcastParam() {
 
 		        if (conc.rank()==0) std::cout << "Now broadcasting parameters! \n";
 		        conc.broadcast((*this).Case);
-		        conc.broadcast((*this).dimension); 
-		        conc.broadcast((*this).temperature); 
-		        conc.broadcast((*this).nOrb); 
-		        conc.broadcast((*this).mu); 
-		        conc.broadcast((*this).tbfile); 
+		        conc.broadcast((*this).dimension);
+		        conc.broadcast((*this).temperature);
+		        conc.broadcast((*this).nOrb);
+		        conc.broadcast((*this).nSite);
+		        conc.broadcast((*this).nOrbSite);
+		        conc.broadcast((*this).mu);
+						//for (size_t i = 0; i < NumTB; i++) {
+		        	conc.broadcast((*this).tbfile);
+						//}
+		        conc.broadcast((*this).NumTB);
+		        conc.broadcast((*this).Gfile);
 		        conc.broadcast((*this).complexHopping);
-		        conc.broadcast((*this).fsfile); 
-		        conc.broadcast((*this).chifile); 
-		        conc.broadcast((*this).interpolateChi); 
-		        conc.broadcast((*this).interpolateNqx); 
-		        conc.broadcast((*this).interpolateNqz); 
-		        conc.broadcast((*this).U); 
-		        conc.broadcast((*this).Up); 
-		        conc.broadcast((*this).J); 
-		        conc.broadcast((*this).Jp); 
-		        conc.broadcast((*this).U_d_c); 
-		        conc.broadcast((*this).U_p_c); 
-		        conc.broadcast((*this).U_pd_c); 
-		        conc.broadcast((*this).U_pp_c); 
-		        conc.broadcast((*this).U_d_s); 
-		        conc.broadcast((*this).U_p_s); 
-		        conc.broadcast((*this).U_pd_s); 
-		        conc.broadcast((*this).U_pp_s); 
-		        conc.broadcast((*this).U_d_coupl); 
-		        conc.broadcast((*this).U_p_coupl); 
-		        conc.broadcast((*this).U_pd_coupl); 
-		        conc.broadcast((*this).U_pp_coupl); 
-		        conc.broadcast((*this).sublattice); 
-		        conc.broadcast((*this).deltaU[0]); 
-		        conc.broadcast((*this).deltaU[1]); 
-		        conc.broadcast((*this).deltaU[2]); 
-		        conc.broadcast((*this).deltaU[3]); 
-		        conc.broadcast((*this).deltaU[4]); 
-		        conc.broadcast((*this).staticUFactor); 				
-		        conc.broadcast((*this).chargeFactor); 				
-		        conc.broadcast((*this).nkInt); 				
-		        conc.broadcast((*this).nkIntz); 				
-		        conc.broadcast((*this).kz2D); 				
-		        conc.broadcast((*this).a1[0]); 				
-		        conc.broadcast((*this).a1[1]); 				
-		        conc.broadcast((*this).a1[2]); 				
-		        conc.broadcast((*this).a2[0]); 				
-		        conc.broadcast((*this).a2[1]); 				
-		        conc.broadcast((*this).a2[2]); 				
-		        conc.broadcast((*this).a3[0]); 				
-		        conc.broadcast((*this).a3[1]); 				
-		        conc.broadcast((*this).a3[2]); 				
-		        conc.broadcast((*this).chia1[0]); 				
-		        conc.broadcast((*this).chia1[1]); 				
-		        conc.broadcast((*this).chia1[2]); 				
-		        conc.broadcast((*this).chia2[0]); 				
-		        conc.broadcast((*this).chia2[1]); 				
-		        conc.broadcast((*this).chia2[2]); 				
-		        conc.broadcast((*this).chia3[0]); 				
-		        conc.broadcast((*this).chia3[1]); 				
-		        conc.broadcast((*this).chia3[2]); 				
-		        conc.broadcast((*this).nqx); 				
-		        conc.broadcast((*this).nqy); 				
-		        conc.broadcast((*this).nqz); 				
+		        conc.broadcast((*this).fsfile);
+		        conc.broadcast((*this).chifile);
+		        conc.broadcast((*this).interpolateChi);
+		        conc.broadcast((*this).interpolateNqx);
+		        conc.broadcast((*this).interpolateNqz);
+		        conc.broadcast((*this).U);
+		        conc.broadcast((*this).Up);
+		        conc.broadcast((*this).J);
+		        conc.broadcast((*this).Jp);
+		        conc.broadcast((*this).U_d_c);
+		        conc.broadcast((*this).U_p_c);
+		        conc.broadcast((*this).U_pd_c);
+		        conc.broadcast((*this).U_pp_c);
+		        conc.broadcast((*this).U_d_s);
+		        conc.broadcast((*this).U_p_s);
+		        conc.broadcast((*this).U_pd_s);
+		        conc.broadcast((*this).U_pp_s);
+		        conc.broadcast((*this).U_d_coupl);
+		        conc.broadcast((*this).U_p_coupl);
+		        conc.broadcast((*this).U_pd_coupl);
+		        conc.broadcast((*this).U_pp_coupl);
+		        conc.broadcast((*this).sublattice);
+		        conc.broadcast((*this).deltaU[0]);
+		        conc.broadcast((*this).deltaU[1]);
+		        conc.broadcast((*this).deltaU[2]);
+		        conc.broadcast((*this).deltaU[3]);
+		        conc.broadcast((*this).deltaU[4]);
+		        conc.broadcast((*this).staticUFactor);
+		        conc.broadcast((*this).chargeFactor);
+		        conc.broadcast((*this).nkInt);
+		        conc.broadcast((*this).nkIntz);
+		        conc.broadcast((*this).kz2D);
+		        conc.broadcast((*this).a1[0]);
+		        conc.broadcast((*this).a1[1]);
+		        conc.broadcast((*this).a1[2]);
+		        conc.broadcast((*this).a2[0]);
+		        conc.broadcast((*this).a2[1]);
+		        conc.broadcast((*this).a2[2]);
+		        conc.broadcast((*this).a3[0]);
+		        conc.broadcast((*this).a3[1]);
+		        conc.broadcast((*this).a3[2]);
+		        conc.broadcast((*this).chia1[0]);
+		        conc.broadcast((*this).chia1[1]);
+		        conc.broadcast((*this).chia1[2]);
+		        conc.broadcast((*this).chia2[0]);
+		        conc.broadcast((*this).chia2[1]);
+		        conc.broadcast((*this).chia2[2]);
+		        conc.broadcast((*this).chia3[0]);
+		        conc.broadcast((*this).chia3[1]);
+		        conc.broadcast((*this).chia3[2]);
+		        conc.broadcast((*this).Qmesh);
+		        conc.broadcast((*this).nqx);
+		        conc.broadcast((*this).nqy);
+		        conc.broadcast((*this).nqz);
 		        conc.broadcast((*this).qxmin);
-		        conc.broadcast((*this).qxmax);				
-		        conc.broadcast((*this).qymin);				
-		        conc.broadcast((*this).qymax);				
-		        conc.broadcast((*this).qzmin);				
-		        conc.broadcast((*this).qzmax);				
-		        conc.broadcast((*this).nw); 				
-		        conc.broadcast((*this).wmin); 				
-		        conc.broadcast((*this).wmax); 				
-		        conc.broadcast((*this).scState); 				
-		        conc.broadcast((*this).printGap); 				
-		        conc.broadcast((*this).gAmpl); 				
-		        conc.broadcast((*this).Delta0); 				
-		        conc.broadcast((*this).deltax); 			
-		        conc.broadcast((*this).deltay); 				
-		        conc.broadcast((*this).deltaz); 				
-		        conc.broadcast((*this).kTrafo); 				
-		        conc.broadcast((*this).options); 				
-		        conc.broadcast((*this).subOptions); 				
+		        conc.broadcast((*this).qxmax);
+		        conc.broadcast((*this).qymin);
+		        conc.broadcast((*this).qymax);
+		        conc.broadcast((*this).qzmin);
+		        conc.broadcast((*this).qzmax);
+		        conc.broadcast((*this).nwn);
+		        conc.broadcast((*this).nw);
+		        conc.broadcast((*this).wmin);
+		        conc.broadcast((*this).wmax);
+		        conc.broadcast((*this).scState);
+		        conc.broadcast((*this).printGap);
+		        conc.broadcast((*this).gAmpl);
+		        conc.broadcast((*this).Delta0);
+		        conc.broadcast((*this).deltax);
+		        conc.broadcast((*this).deltay);
+		        conc.broadcast((*this).deltaz);
+		        conc.broadcast((*this).kTrafo);
+		        conc.broadcast((*this).options);
+		        conc.broadcast((*this).subOptions);
 		        conc.broadcast((*this).pairingSpinParity);
 		        conc.broadcast((*this).pairingFromSpin);
 		        conc.broadcast((*this).pairingFromCharge);
@@ -561,21 +601,33 @@ namespace rpa {
 		        conc.broadcast((*this).nSitesPerUnitCell);
 		        conc.broadcast((*this).nkPerSheet);
 		        conc.broadcast((*this).FSnkz);
+		        conc.broadcast((*this).Green);
 		        conc.broadcast((*this).Omega0);
 		        conc.broadcast((*this).damp);
 		        conc.broadcast((*this).calcOnlyDiagonal);
 			}
 
 			void setupOrbitalIndices(){
-				indexToOrb.resize(nOrb*nOrb,2);
-				for (size_t l1 = 0; l1 < nOrb; ++l1){
-					for (size_t l2 = 0; l2 < nOrb; ++l2){
-						size_t ind=l2+l1*nOrb;
-						indexToOrb(ind,0) = l1;
-						indexToOrb(ind,1) = l2;
-					}
-				}
 
+			//	if (nSite == 1) {
+					indexToOrb.resize(nOrb*nOrb,2);
+					for (size_t l1 = 0; l1 < nOrb; ++l1){
+						for (size_t l2 = 0; l2 < nOrb; ++l2){
+							size_t ind=l2+l1*nOrb;
+							indexToOrb(ind,0) = l1;
+							indexToOrb(ind,1) = l2;
+						}
+					}
+				/*} else {
+					indexToOrb.resize(nOrbSite*nOrbSite,2);
+					for (size_t l1 = 0; l1 < nOrbSite; ++l1){
+						for (size_t l2 = 0; l2 < nOrbSite; ++l2){
+							size_t ind=l2+l1*nOrbSite;
+							indexToOrb(ind,0) = l1;
+							indexToOrb(ind,1) = l2;
+						}
+					}
+				}*/
 			}
 
 	};

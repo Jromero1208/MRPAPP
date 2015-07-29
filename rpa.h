@@ -12,7 +12,7 @@
 
 namespace rpa {
 
-	extern "C" void 
+	extern "C" void
 #ifdef glyph
 	zgemm_
 #else
@@ -21,8 +21,8 @@ namespace rpa {
 	(char *,char *,int *,int *,int *,std::complex<double> *,
 						  std::complex<double> *,int *,std::complex<double> *,
 						  int *,std::complex<double> *,std::complex<double> *,int *);
-	
-	extern "C" void 
+
+	extern "C" void
 #ifdef glyph
 	zgetrf_
 #else
@@ -30,15 +30,15 @@ namespace rpa {
 #endif
 	(int *,int *,std::complex<double> *,
 						   int *,int *,int *);
-	
-	extern "C" void 
+
+	extern "C" void
 #ifdef glyph
 	zgetri_
 #else
 	zgetri
 #endif
-	(int *,std::complex<double> *, 
-						   int *, int *, 
+	(int *,std::complex<double> *,
+						   int *, int *,
 						   std::complex<double> *, int *, int *);
 
 	inline void GEMM(char transa,char transb,int m,int n,int k,
@@ -46,9 +46,9 @@ namespace rpa {
 				     psimag::Matrix<std::complex<double> > &a,int lda,
 				     psimag::Matrix<std::complex<double> > &b,int ldb,
 				     std::complex<double> &beta,
-				     psimag::Matrix<std::complex<double> > &c,int ldc) 
+				     psimag::Matrix<std::complex<double> > &c,int ldc)
 					 {
-#ifdef glyph						
+#ifdef glyph
 						zgemm_
 #else
 						zgemm
@@ -56,23 +56,23 @@ namespace rpa {
 						(&transa,&transb,&m,&n,&k,&alpha,&(a(0,0)),
 							  &lda,&(b(0,0)),&ldb,&beta,&(c(0,0)),&ldc);
 						}
-	inline void GETRF(int m, int n, 
-	 			      psimag::Matrix<std::complex<double> > &a,int lda, 
-	 			      std::vector<int> &ipiv, int *info) 
+	inline void GETRF(int m, int n,
+	 			      psimag::Matrix<std::complex<double> > &a,int lda,
+	 			      std::vector<int> &ipiv, int *info)
 					 {
-#ifdef glyph						
+#ifdef glyph
 						zgetrf_
 #else
 						zgetrf
 #endif
 						(&m,&n,&(a(0,0)),&lda,&(ipiv[0]),info);
 						}
-	inline void GETRI(int m, 
-				      psimag::Matrix<std::complex<double> > &a, int lda, 
-				      std::vector<int> &ipiv, 
-					  psimag::Matrix<std::complex<double> > &work, int lwork, int *info) 
+	inline void GETRI(int m,
+				      psimag::Matrix<std::complex<double> > &a, int lda,
+				      std::vector<int> &ipiv,
+					  psimag::Matrix<std::complex<double> > &work, int lwork, int *info)
 					 {
-#ifdef glyph						
+#ifdef glyph
 						zgetri_
 #else
 						zgetri
@@ -105,7 +105,7 @@ namespace rpa {
 			Up(param.Up),
 			J(param.J),
 			Jp(param.Jp),
-			nOrb(param.nOrb),
+			nOrb(param.nOrbSite),
 			msize(size_t(nOrb*nOrb)),
 			// orbPos(nOrb,std::vector<Field>(3,0.0)),
 			ii(1.0,0.0),
@@ -117,8 +117,8 @@ namespace rpa {
 
 
 		void setupInteractionMatrix() {
-			if (param.Case== "YBCO_orthoII_perpStripes" 
-				|| param.Case == "1band" 
+			if (param.Case== "YBCO_orthoII_perpStripes"
+				|| param.Case == "1band"
 				|| param.Case == "bilayer"
 				|| param.Case == "trilayer"
 				|| param.Case == "Checkerboard"
@@ -129,7 +129,7 @@ namespace rpa {
 					size_t ind1(l1+l1*nOrb);
 					spinMatrix  (ind1,ind1)   = U;
 					chargeMatrix(ind1,ind1)   = -U;
-				}	
+				}
 
 			} else if (param.Case=="EmeryOnlyUd") {
 				// Only diagonal 11 terms
@@ -137,16 +137,16 @@ namespace rpa {
 					size_t ind1(l1+l1*nOrb);
 					spinMatrix  (ind1,ind1)   = U;
 					chargeMatrix(ind1,ind1)   = -U;
-				}	
+				}
 			} else {
 				size_t limit(nOrb);
 				if (param.sublattice==1) limit=nOrb<10?nOrb/2:5;
 				std::cout << "In rpa.h: limit=" << limit << "\n";
 
-				
+
 				ComplexMatrixType spinSubMatrix(limit*limit,limit*limit);
 				ComplexMatrixType chargeSubMatrix(limit*limit,limit*limit);
-					
+
 					// First the diagonal terms
 					for (size_t l1 = 0; l1 < limit; ++l1) {
 							for (size_t l2 = 0; l2 < limit; ++l2) {
@@ -159,7 +159,7 @@ namespace rpa {
 									chargeSubMatrix(ind1,ind1) = Up-2*J;
 									}
 							}
-						}	
+						}
 					// Off-diagonal terms
 					for (size_t l1=0; l1 < limit; l1++) {
 						size_t ind1 = l1+l1*limit;
@@ -190,10 +190,10 @@ namespace rpa {
 					} else {
 						for(size_t l1=0; l1<limit; l1++) for (size_t l2=0; l2<limit; l2++) {
 						for(size_t l3=0; l3<limit; l3++) for (size_t l4=0; l4<limit; l4++) {
-							
+
 							size_t ind1=l2+l1*limit;
 							size_t ind2=l4+l3*limit;
-		
+
 							size_t ind3=l2+l1*nOrb;
 							size_t ind4=l4+l3*nOrb;
 
@@ -206,14 +206,14 @@ namespace rpa {
 							spinMatrix(ind3,ind4) = spinSubMatrix(ind1,ind2);
 							chargeMatrix(ind3,ind4) = chargeSubMatrix(ind1,ind2);
 						}
-						}	
-					}					
+						}
+					}
 				}
 		}
 
-		void calcRPAResult(ComplexMatrixType& matrix0, 
-						   ComplexMatrixType& interactionMatrix, 
-						   ComplexMatrixType& matrix1, 
+		void calcRPAResult(ComplexMatrixType& matrix0,
+						   ComplexMatrixType& interactionMatrix,
+						   ComplexMatrixType& matrix1,
 						   std::vector<Field> q=std::vector<Field>(3,0.0)) {
 			int n = interactionMatrix.n_row();
 			// int m = matrix0.n_col();

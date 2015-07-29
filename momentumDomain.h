@@ -20,7 +20,7 @@ namespace rpa {
 		typedef MatrixTemplate<size_t> 				MatrixIntType;
 		typedef std::vector<Field>      			VectorType;
 		typedef std::vector<std::complex<Field> >   ComplexVectorType;
-		
+
 		const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>&   param;
 		ConcurrencyType& conc;
 		VectorType a1,a2,a3;
@@ -34,7 +34,7 @@ namespace rpa {
 		size_t nktot;
 		MatrixType b;
 		MatrixType momenta;
-		MatrixIntType indexOfAdd;
+		//MatrixIntType indexOfAdd;
 		MatrixIntType index2Components;
 		// VectorType dG;
 		// VectorType GNorm;
@@ -42,7 +42,7 @@ namespace rpa {
 		size_t index();
 
 		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
-					   ConcurrencyType& concurrency, 
+					   ConcurrencyType& concurrency,
 					   const size_t& numberOfkpoints,
 					   const size_t& numberOfkzpoints,
 					   const size_t& dimension):
@@ -68,13 +68,13 @@ namespace rpa {
 				set_primitiveVectors();
 			}
 
-		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters, 
-					   ConcurrencyType& concurrency, 
+		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
+					   ConcurrencyType& concurrency,
 					   const size_t& numberOfkpoints,
 					   const size_t& numberOfkzpoints,
 					   const size_t& dimension,
-					   const VectorType& p1, 
-					   const VectorType& p2, 
+					   const VectorType& p1,
+					   const VectorType& p2,
 					   const VectorType& p3):
 			param(parameters),
 			conc(concurrency),
@@ -89,7 +89,7 @@ namespace rpa {
 			nktot((dim==3)?size_t(nk*nk*nkz):size_t(nk*nk)),
 			b(3,3),
 			momenta(nktot,3),
-			indexOfAdd(nktot,nktot),
+			//indexOfAdd(nktot,nktot),
 			index2Components(nktot,3)
 			// dG(3,0),
 			// GNorm(3,0)
@@ -98,8 +98,8 @@ namespace rpa {
 			}
 
 
-		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters, 
-					   ConcurrencyType& concurrency, 
+		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
+					   ConcurrencyType& concurrency,
 					   const size_t& numberOfkpoints,
 					   const size_t& dimension):
 			param(parameters),
@@ -114,8 +114,8 @@ namespace rpa {
 			nkz(1),
 			nktot(nk*nk),
 			b(3,3),
-			momenta(nktot,3), 
-			// indexOfAdd(nktot,nktot),
+			momenta(nktot,3),
+			//indexOfAdd(nktot,nktot),
 			index2Components(nktot,3)
 			// dG(3,0),
 			// GNorm(3,0)
@@ -123,17 +123,44 @@ namespace rpa {
 				set_primitiveVectors();
 			}
 
+			// for empty K mesh
+			momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
+						   ConcurrencyType& concurrency,
+						   const size_t& numberOfkpoints,
+						   const size_t& dimension,
+							 int x):
+				param(parameters),
+				conc(concurrency),
+				a1(param.a1),
+				a2(param.a2),
+				a3(param.a3),
+				shift(3,-0.5),
+				dGInverse(3,3),
+				dim(dimension),
+				nk(1),
+				nkz(1),
+				nktot(1),
+				b(3,3),
+				momenta(nktot,3),
+				//indexOfAdd(nktot,nktot),
+				index2Components(nktot,3)
+				// dG(3,0),
+				// GNorm(3,0)
+				{
+					set_primitiveVectors();
+				}
+
 		momentumDomain(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
-					   ConcurrencyType& concurrency, 
-					   const std::string& path, 
-					   size_t numberOfkpoints): 
+					   ConcurrencyType& concurrency,
+					   const std::string& path,
+					   size_t numberOfkpoints):
 		param(parameters),
 		conc(concurrency),
 		nk(numberOfkpoints),
 		nktot(nk),
 		momenta(nk,3)
-		{ 
-			set_momenta_Path1(); 
+		{
+			set_primitiveVectors();
 		}
 
 
@@ -171,7 +198,7 @@ namespace rpa {
 			// Now setting up matrix dGInverse which is needed to map k-point onto its index
 			std::vector<FieldType> nki(3);
 			nki[0] = nk; nki[1] = nk; nki[2] = nkz;
-			for (size_t l1=0; l1<3; l1++) for (size_t l2=0; l2<3; l2++) 
+			for (size_t l1=0; l1<3; l1++) for (size_t l2=0; l2<3; l2++)
 				dGInverse(l1,l2) = b(l2,l1) / std::max(nki[l2],FieldType(1));
 			// Now invert
 			calcInverse(dGInverse);
@@ -179,7 +206,7 @@ namespace rpa {
 
 
 		void set_momenta_FS(const VectorType& shift) {
-			if (dim==2) {	
+			if (dim==2) {
 				for (size_t ikx = 0; ikx < nk; ++ikx)
 				{
 					for (size_t iky = 0; iky < nk; ++iky)
@@ -206,34 +233,37 @@ namespace rpa {
 			}
 		}
 
-		void set_momenta(const bool& indexation) {
-						 	
-					if (dim==2) {	
-						for (size_t ikx = 0; ikx < nk; ++ikx) {
-							for (size_t iky = 0; iky < nk; ++iky) {
-								size_t ind = index(ikx,iky);
-								momenta(ind,0) = (float(ikx)/float(nk) + shift[0]) * b(0,0) + 
+		void set_momenta(const bool& indexation)
+		{
+
+					if (dim==2) {
+						for (size_t iky = 0; iky < nk; ++iky) {
+							for (size_t ikx = 0; ikx < nk; ++ikx) {
+								size_t ind = index(iky,ikx);
+								momenta(ind,0) = (float(ikx)/float(nk) + shift[0]) * b(0,0) +
 												 (float(iky)/float(nk) + shift[1]) * b(1,0) ;
-								momenta(ind,1) = (float(ikx)/float(nk) + shift[0]) * b(0,1) + 
+								momenta(ind,1) = (float(ikx)/float(nk) + shift[0]) * b(0,1) +
 											     (float(iky)/float(nk) + shift[1]) * b(1,1) ;
 								momenta(ind,2) = param.kz2D;
 
 								index2Components(ind,0) = ikx;
 								index2Components(ind,1) = iky;
 								index2Components(ind,2) = 0;
+
+								//std::cerr << "kx, ky, ind="<< momenta(ind,0) <<", "<< momenta(ind,1) << ", " << ind << std::endl;
 							}
 						}
 					} else if (dim==3) {
 						for (size_t ikz = 0; ikz < nkz; ++ikz) {
 							for (size_t iky = 0; iky < nk; ++iky) {
 								for (size_t ikx = 0; ikx < nk; ++ikx) {
-									size_t ind = index(ikx,iky,ikz);
+									size_t ind = index(iky,ikx,ikz);
 									for (size_t i=0; i<3; i++) {
-										momenta(ind,i) = (float(ikx)/float(nk)  + shift[0])  * (*this).b(0,i) + 
+										momenta(ind,i) = (float(ikx)/float(nk)  + shift[0])  * (*this).b(0,i) +
 														 (float(iky)/float(nk)  + shift[1]) * (*this).b(1,i) +
 													     (float(ikz)/float(nkz) + shift[2]) * (*this).b(2,i) ;
 									}
-									
+
 									index2Components(ind,0) = ikx;
 									index2Components(ind,1) = iky;
 									index2Components(ind,2) = ikz;
@@ -241,11 +271,14 @@ namespace rpa {
 							}
 						}
 					}
-			if (indexation) set_indexOfAdd();	
+					if (indexation)
+					{
+						//set_indexOfAdd();
+						std::cerr << "did index" << std::endl;
+					}
+			}
 
-				}
-
-		void set_momenta(const Field& kxmin, const Field& kxmax, 
+		void set_momenta(const Field& kxmin, const Field& kxmax,
 						const Field& kymin, const Field& kymax,
 						const Field& kzmin, const Field& kzmax) {
 			// Assumes a tetragonal BZ
@@ -266,7 +299,7 @@ namespace rpa {
 
 		}
 
-		void set_momenta(const Field& kxmin, const Field& kxmax, 
+		void set_momenta(const Field& kxmin, const Field& kxmax,
 						const Field& kymin, const Field& kymax) {
 			// Assumes a tetragonal BZ
 			for (size_t ikx = 0; ikx < nk; ++ikx) {
@@ -284,35 +317,67 @@ namespace rpa {
 
 		}
 
+		void set_momenta(const VectorType& kx, const VectorType& ky, const VectorType& kz) {
+
+			size_t ind = 0;
+			for (size_t ikx = 0; ikx < nk; ++ikx) {
+				for (size_t iky = 0; iky < nk; ++iky) {
+					for (size_t ikz = 0; ikz < nkz; ++ikz) {
+						index2Components(ind,0) = ikx;
+						index2Components(ind,1) = iky;
+						index2Components(ind,2) = ikz;
+
+						momenta(ind,0) = kx[ind];
+						momenta(ind,1) = ky[ind];
+						momenta(ind,2) = kz[ind];
+						ind++;
+					}
+				}
+			}
+			//set_indexOfAdd();
+		}
+
 		void set_momenta_Path1() {
 
-			size_t nks(nk/4);
+			size_t nks(nktot/4);
 			size_t ind(0);
 			for (size_t ik=0; ik<nks; ik++) {
 				momenta(ind,0) = float(ik)/float(nks) * param.pi_f;
 				momenta(ind,1) = float(ik)/float(nks) * param.pi_f;
 				momenta(ind,2) = 0.0;
+				index2Components(ind,0) = ind;
+				index2Components(ind,1) = ind;
+				index2Components(ind,2) = 0;
 				ind += 1;
 			}
 			for (size_t ik=0; ik<nks; ik++) {
 				momenta(ind,0) = param.pi_f + float(ik)/float(nks) * param.pi_f;
 				momenta(ind,1) = param.pi_f - float(ik)/float(nks) * param.pi_f;
 				momenta(ind,2) = 0.0;
+				index2Components(ind,0) = ind;
+				index2Components(ind,1) = ind - ik;
+				index2Components(ind,2) = 0;
 				ind += 1;
 			}
 			for (size_t ik=0; ik<nks; ik++) {
 				momenta(ind,0) = 2.*param.pi_f - float(ik)/float(nks) * param.pi_f;
 				momenta(ind,1) = 0.0;
 				momenta(ind,2) = 0.0;
+				index2Components(ind,0) = ind - ( 2 * ik );
+				index2Components(ind,1) = 0;
+				index2Components(ind,2) = 0;
 				ind += 1;
 			}
 			for (size_t ik=0; ik<nks; ik++) {
 				momenta(ind,0) = param.pi_f - float(ik)/float(nks) * param.pi_f;
 				momenta(ind,1) = 0.0;
 				momenta(ind,2) = 0.0;
+				index2Components(ind,0) = nks - ik;
+				index2Components(ind,1) = 0;
+				index2Components(ind,2) = 0;
 				ind += 1;
 			}
-
+		//set_indexOfAdd();
 		}
 
 		size_t index(size_t ikx,size_t iky,size_t ikz=0) const {
@@ -334,7 +399,7 @@ namespace rpa {
 		// 	for(size_t l=0;l<(*this).dim;l++) {
 		// 		(*this).b.getRow(l,bi);
 		// 		fki[l] = (scalarProd(k,bi)/scalarProd(bi,bi) - shift[l]) * float(nki[l]);
-		// 		iki[l] = size_t(fki[l] + 1.0e-5); 
+		// 		iki[l] = size_t(fki[l] + 1.0e-5);
 		// 		residue += fabs(fki[l]-float(iki[l]));
 		// 		iki[l] = iki[l] % nki[l];
 		// 	}
@@ -351,7 +416,7 @@ namespace rpa {
 			residue = 0.0;
 			if (map1BZ) mapTo1BZ(k);
 			for (size_t l=0; l<3; l++) {
-				fki[l] = dGInverse(l,0) * k[0] + dGInverse(l,1) * k[1] + dGInverse(l,2) * k[2] - shift[l] * nki[l];	
+				fki[l] = dGInverse(l,0) * k[0] + dGInverse(l,1) * k[1] + dGInverse(l,2) * k[2] - shift[l] * nki[l];
 				iki[l] = size_t(fki[l] + 1.0e-5);
 				residue += fabs(fki[l]-float(iki[l]));
 				iki[l] = iki[l] % nki[l];
@@ -387,14 +452,14 @@ namespace rpa {
 		}
 
 
-		// void interpolateBiLinear(const VectorType& q, 
-		// 						 const ComplexVectorType& complexField, 
+		// void interpolateBiLinear(const VectorType& q,
+		// 						 const ComplexVectorType& complexField,
 		// 						 ComplexType& result) const {
 
 		// 	// First find indices of vertices of cube surrounding q
 		// 	size_t index(0); FieldType residue(0.0);
 		// 	kToik(q,index,residue);
-			
+
 		// 	// std::cout<<"q,index,q[index]"<<q[0]<<","<<q[1]<<","<<index<<","<<(*this).momenta(index,0)<<","<<(*this).momenta(index,1)<<"\n";
 
 		// 	if(fabs(residue)<=1.0e-5) { // no interpolation needed!
@@ -423,7 +488,7 @@ namespace rpa {
 		// 	VectorType dis(2,0);
 		//     dis[0] = (q[0]-(*this).momenta(ind00,0))/((*this).momenta(ind11,0)-(*this).momenta(ind00,0));
 		//     dis[1] = (q[1]-(*this).momenta(ind00,1))/((*this).momenta(ind11,1)-(*this).momenta(ind00,1));
-			
+
 		// 	ComplexType c00(0.0); ComplexType c10(0.0); ComplexType  c0(0.0);
 		// 	c00 = complexField[ind00] * (1.-dis[0]) + complexField[ind10] * dis[0];
 		// 	c10 = complexField[ind01] * (1.-dis[0]) + complexField[ind11] * dis[0];
@@ -435,7 +500,7 @@ namespace rpa {
 		// 										 " , "<<(*this).momenta(ind11,0)<<","<<(*this).momenta(ind11,1)<< "\n";
 		// }
 
-		void getSurroundingIndices(VectorType& q, 
+		void getSurroundingIndices(VectorType& q,
 					    		   size_t& ind00, size_t& ind10, size_t& ind01, size_t& ind11) const {
 
 			// Find indices of vertices of cube surrounding q
@@ -455,8 +520,8 @@ namespace rpa {
 			ind11 = (*this).index(n0p1,n1p1);
 		}
 
-		void getSurroundingIndices(VectorType& q, 
-					    		   size_t& ind000, size_t& ind001, size_t& ind010, size_t& ind100, 
+		void getSurroundingIndices(VectorType& q,
+					    		   size_t& ind000, size_t& ind001, size_t& ind010, size_t& ind100,
 					    		   size_t& ind011, size_t& ind101, size_t& ind110, size_t& ind111) const {
 
 			// Find indices of vertices of cube surrounding q
@@ -484,18 +549,32 @@ namespace rpa {
 
 
 
+		/*
 		void set_indexOfAdd() {
 			for (size_t i1 = 0; i1 < nktot; ++i1)
 			{
 				for (size_t i2 = 0; i2 < nktot; ++i2)
 				{
 					indexOfAdd(i1,i2) = calcIndexOfAdd(i1,i2);
-					// std::cout << "i1,i2,index: " << i1 << "," << i2 << "," << indexOfAdd(i1,i2) << "\n";
+					//std::cout << "i1,i2,index: " << i1 << "," << i2 << "," << indexOfAdd(i1,i2) << "\n";
 				}
 			}
-		}	
-						 
+		}
+
 		size_t calcIndexOfAdd(const size_t i1, const size_t i2) {
+			std::vector<size_t> m(3);
+			for (size_t i=0; i<3; i++) {
+				m[i] = index2Components(i1,i) + index2Components(i2,i);
+				if (m[i] > nk-1) m[i] -= nk;
+			}
+			size_t index(0);
+			if (dim==2) index = m[0]+m[1]*nk;
+			else if (dim==3) index = m[0]+m[1]*nk*nk+m[2]*nk;
+			return index;
+		}
+		*/
+
+		size_t indexOfAdd(const size_t i1, const size_t i2) const {
 			std::vector<size_t> m(3);
 			for (size_t i=0; i<3; i++) {
 				m[i] = index2Components(i1,i) + index2Components(i2,i);
@@ -513,7 +592,7 @@ namespace rpa {
 		// 	Field eps(1.0e-5);
 		// 	VectorType q(3);
 		// 	// std::cout << "q=" << q ;
-			
+
 		// 	for (size_t i=0; i<dim; i++) {
 		// 		q[i]=momenta(i1,i)+momenta(i2,i);
 		// 	}

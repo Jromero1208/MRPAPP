@@ -19,17 +19,17 @@ typedef double FieldType;
 
 #include <vector>
 #include "rpa.h"
-// #include "greensFunction.h"
-// #include "chi0Ofq.h"
+#include "greensFunction.h"
+#include "chi0Ofq.h"
 #include "chi0.h"
 #include "pairing.h"
 
 typedef PsimagLite::Range<ConcurrencyType> RangeType;
 
-template <typename Field,  template<typename> class MatrixTemplate, typename ConcurrencyType> 
+template <typename Field,  template<typename> class MatrixTemplate, typename ConcurrencyType>
 void calcBands(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& param, ConcurrencyType& conc) {
 	rpa::momentumDomain<Field,psimag::Matrix,ConcurrencyType> kmesh(param,conc,param.nkInt,param.nkIntz,param.dimension);
-	kmesh.set_momenta(false);	
+	kmesh.set_momenta(false);
 	rpa::bandstructure<Field,psimag::Matrix,ConcurrencyType> bands(param,conc,kmesh,false);
 	// std::vector<FieldType> w(10);
 	// ComplexMatrixType v(10,10);
@@ -58,9 +58,9 @@ int main(int argc,char *argv[])
 	// std::string fileName(argv[1]);
 
 
-	typedef std::complex<FieldType>	 			ComplexType;
+	typedef std::complex<FieldType>	 		     	ComplexType;
 	typedef psimag::Matrix<ComplexType> 	    ComplexMatrixType;
-	typedef psimag::Matrix<FieldType> 	        MatrixType;
+	typedef psimag::Matrix<FieldType> 	      MatrixType;
 
 
 	ConcurrencyType concurrency(argc,argv);
@@ -70,7 +70,7 @@ int main(int argc,char *argv[])
 	if (concurrency.rank()==0) param.writeParameters(std::cout);
 	param.setupOrbitalIndices();
 
-	calcBands(param,concurrency);
+	if (param.Gfile == "") calcBands(param,concurrency);
 
 	// if(param.options.find("calcBands")!=std::string::npos) {
 	// 	if (concurrency.rank()==0) std::cout << "Now calculating Bands \n";
@@ -90,13 +90,12 @@ int main(int argc,char *argv[])
 		if (concurrency.rank()==0) std::cout << "qxmin,qxmax,qymin,qymax="
 											<<param.qxmin <<","<<param.qxmax<<","<<param.qymin<<","<<param.qymax<<"\n";
 
-
 		// size_t nq=8;
 		// momentumDomain<FieldType,psimag::Matrix> qMesh(param,nq,1,2,param.chia1,param.chia2,param.chia3);
 		// qMesh.set_momenta(false);
 		typedef susc<FieldType,psimag::Matrix,ConcurrencyType> SuscType;
 		// chi0q<FieldType,SuscType,BandsType,psimag::Matrix,ConcurrencyType> susq(param,qMesh,concurrency);
-		susceptibility<FieldType,SuscType,BandsType,psimag::Matrix,ConcurrencyType> 
+		susceptibility<FieldType,SuscType,BandsType,psimag::Matrix,ConcurrencyType>
 					   susq(param,concurrency,
 					   	    param.qxmin,param.qxmax,param.nqx,
 					   	    param.qymin,param.qymax,param.nqy,
@@ -128,6 +127,22 @@ int main(int argc,char *argv[])
 		typedef rpa::gap2D<FieldType,psimag::Matrix,ConcurrencyType> GapType; // this is not really needed
 		pairing<FieldType,BandsType,SuscType,GapType,psimag::Matrix,ConcurrencyType> pairing(param,concurrency,param.interpolateChi,qMesh);
 	}
+
+
+/*
+	if(param.options.find("calcGreen")!=std::string::npos) {
+
+		if (concurrency.rank()==0) std::cout << " Now calculating Green's \n";
+		greensFunction<FieldType,psimag::Matrix,ConcurrencyType> g(param,concurrency);
+		chi0ofq<FieldType,psimag::Matrix,ConcurrencyType> chi0(param,g,concurrency);
+	  if (concurrency.rank()==0) {
+
+			std::ofstream os1("chi0ofq.dat");
+	 		os1 << chi0.chiq;
+			os1.close();
+		}
+	}
+*/
 
 
 
@@ -178,7 +193,7 @@ int main(int argc,char *argv[])
 
 
 	// for (;!range.end();range.next()) {
-		
+
 	// 		size_t iq = range.index();
 	// 		std::vector<FieldType> q(param.dimension);
 	// 		for (size_t i=0; i<param.dimension; i++) q[i] = momenta.momenta(iq,i);
@@ -189,8 +204,8 @@ int main(int argc,char *argv[])
 
 	// 		rpa.calcRPAResult(chi0.chi0,rpa.spinMatrix,chiRPA);
 	// 		chiUq[iq]=chi0.calcChiPhys(chiRPA,q);
-			
-	// 		// std::cout << "chi0: " << chi0.chi0(0,0) <<  ", chiU: " << chiUq[iq] << "\n"; 
+
+	// 		// std::cout << "chi0: " << chi0.chi0(0,0) <<  ", chiU: " << chiUq[iq] << "\n";
 
 	// 	}
 	// 	concurrency.reduce(chi0q);
@@ -207,5 +222,3 @@ int main(int argc,char *argv[])
 		return 0;
 
 }
-
-

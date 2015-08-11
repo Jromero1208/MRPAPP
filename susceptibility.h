@@ -61,7 +61,7 @@ namespace rpa {
 			FieldType wmin_,wmax_;
 			std::vector<size_t> qtok;
 
-			greensFunction<FieldType,psimag::Matrix,ConcurrencyType> g;
+		//	greensFunction<FieldType,psimag::Matrix,ConcurrencyType> g;
 
 
 		public:
@@ -90,8 +90,8 @@ namespace rpa {
 						indexToiw(numberOfQ,0),
 						wmin_(wmin),
 						wmax_(wmax),
-						qtok(numberOfQ,0),
-						g(param,conc)
+						qtok(numberOfQ,0)
+						//g(param,conc)
 		{
 
 			if (conc.rank()==0) std::cerr << "numberOfQ: " << numberOfQ << "\n";
@@ -99,7 +99,7 @@ namespace rpa {
 
 
 				// Setup q-mesh based on nq's and q-limits
-			if(param.Green) {
+		/*	if(param.Green) {
 				g.init();
 				if (param.Gfile == "") g.printGreens();
 				if (param.Qmesh){
@@ -107,11 +107,11 @@ namespace rpa {
 				} else {
 					setupQandOmegaMesh(nq1,nq2,nq3,numberOfQ,nw,wmin,wmax,QVec,qtok,g,param.Qmesh);
 				}
-			} else {
+			} else {*/
 				setupQandOmegaMesh(nq1,nq2,nq3,numberOfQ,nw,
 				               qxmin,qxmax,qymin,qymax,qzmin,qzmax,
 				               wmin,wmax,QVec);
-			}
+		//	}
 
 			if (param.scState==1 && param.printGap==1 && conc.rank()==0)
 			{
@@ -160,11 +160,11 @@ namespace rpa {
 				}*/
 				// make the split for multisite calculation
 				if (param.nSite == 1) {
-					if (param.Green){
+				/*	if (param.Green){
 						calcElements(chi0Matrix[0][0],param.Green);
-					} else {
+					} else {*/
 						calcElements(chi0Matrix[0][0],param.tbfile);
-					}
+					//}
 					if (conc.rank()==0) std::cout << "Now printing out chiq \n"; writeChiqTxt(chi0Matrix[0][0]);
 				} else {
 					calcElements(chi0Matrix,param.tbfile,param.nSite);
@@ -205,12 +205,12 @@ namespace rpa {
 					GapType Delta(param,conc);
 					calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
 				               calcChi0(param,kmesh,bands,q,conc,chi0Matrix[iQ],Delta,QVec[iQ][3],0);
-	      } else if (param.Green) {
+	      /*} else if (param.Green) {
 					  calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
 							//calcChi0(param,kmesh,bands,q,conc,chi0Matrix[iQ],iQ);
 								calcChi0(param,bands,q,numberOfQ,conc,chi0Matrix[iQ],iQ,qtok[iQ],g);
 
-				} else {
+				*/} else {
 	          if (wmin_==0.0 && wmax_ == 0.0)
 						{
 	           				calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
@@ -292,7 +292,7 @@ namespace rpa {
 		}
 
 		//calcElements for green
-		void calcElements(VectorSuscType& chi0Matrix, bool paramg) {
+		/*void calcElements(VectorSuscType& chi0Matrix, bool paramg) {
 
 			BandsType bands(param,conc);
 			RangeType range(0,QVec.size(),conc);
@@ -316,7 +316,7 @@ namespace rpa {
 
 			for (size_t iq=0;iq<numberOfQ;iq++) chi0Matrix[iq].allReduce();
 		}
-
+*/
 
 
 

@@ -81,7 +81,7 @@ namespace rpa {
 			cachedK(kmesh.nktot,false),
 			ev(caching_?kmesh.nktot:0,VectorType(nbands)),
 			ak(caching_?kmesh.nktot:0,ComplexMatrixType(nbands,nbands)),
-			Lm(2*nbands,2*nbands)
+			Lm(param.LS?2*nbands:0,param.LS?2*nbands:0)
 		{
 			// if (kmesh.nktot>=16384) caching_=false;
 			if (param.tbfile!="") readCSVFile(param.tbfile);
@@ -104,7 +104,7 @@ namespace rpa {
 			cachedK(kmesh.nktot,false),
 			ev(caching_?kmesh.nktot:0,VectorType(nbands)),
 			ak(caching_?kmesh.nktot:0,ComplexMatrixType(nbands,nbands)),
-			Lm(2*nbands,2*nbands)
+			Lm(param.LS?2*nbands:0,param.LS?2*nbands:0)
 		{
 			// if (kmesh.nktot>=16384) caching_=false;
 			if (file!="") readCSVFile(file);
@@ -126,7 +126,7 @@ namespace rpa {
 			cachedK(0),
 			ev(0),
 			ak(0,ComplexMatrixType(0,0)),
-			Lm(2*nbands,2*nbands)
+			Lm(param.LS?2*nbands:0,param.LS?2*nbands:0)
 		{
 			// if (kmesh.nktot>=16384) caching_=false;
 			if (param.tbfile!="") readCSVFile(param.tbfile);
@@ -147,7 +147,7 @@ namespace rpa {
 			cachedK(0),
 			ev(0),
 			ak(0,ComplexMatrixType(0,0)),
-			Lm(2*nbands,2*nbands)
+			Lm(param.LS?2*nbands:0,param.LS?2*nbands:0)
 		{
 
 		}

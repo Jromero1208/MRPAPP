@@ -70,6 +70,8 @@ int main(int argc,char *argv[])
 	if (concurrency.rank()==0) param.writeParameters(std::cout);
 	param.setupOrbitalIndices();
 
+
+
 	if (param.Gfile == "") calcBands(param,concurrency);
 
 	// if(param.options.find("calcBands")!=std::string::npos) {

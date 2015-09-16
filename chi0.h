@@ -314,6 +314,71 @@ namespace rpa {
 
 		}
 
+		// Generator for finite w, Delta=0 calculation for optimized system
+		calcChi0Matrix(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
+			const momentumDomain<Field,psimag::Matrix,ConcurrencyType>& kmeshIn,
+			BandsType& bandsIn,
+			const std::vector<Field>& q,
+			ConcurrencyType& concurrency,
+			SuscType& chi0matrix,
+			int x,
+			int y,
+			const FieldType& omega,
+			const bool kMap=0):
+		param(parameters),
+		kmesh(kmeshIn),
+		bands(bandsIn),
+		conc(concurrency),
+		nOrb(param.nOrb),
+		msize(param.nOrbSite*param.nOrbSite),
+		invT(1./param.temperature),
+		kMap_(kMap),
+		chi0k(kMap?kmeshIn.nktot:0,0.0)
+
+		{
+			VectorType k(3),kq(3);
+			VectorType ek(nOrb,0),ekq(nOrb,0);
+			ComplexMatrixType ak(nOrb,nOrb), akq(nOrb,nOrb), susTerm(nOrb,nOrb);
+			int nOrbSite = param.nOrbSite;
+
+
+			for (size_t i=0;i<msize;i++) for (size_t j=i;j<msize;j++)
+					chi0matrix(i,j) = ComplexType(0.0,0.0);
+
+			for (size_t ik = 0; ik < kmesh.nktot; ++ik)	{
+				kmesh.momenta.getRow(ik,k);
+				for (size_t i = 0; i < 3; ++i) kq[i] = k[i] + q[i];
+				bands.getEkAndAk(k,ek,ak);
+				bands.getEkAndAk(kq,ekq,akq);
+				for (size_t band1 = 0; band1 < nOrb; ++band1){
+					for (size_t band2 = 0; band2 < nOrb; ++band2){
+						ComplexType r1(0.0);
+						r1 = susInt(ekq[band1],ek[band2],invT,omega,param.damp);
+
+						for (size_t i=0;i<msize;i++) for (size_t j=i;j<msize;j++) {
+							size_t l1 = param.indexToOrb(i,1); size_t l2 = param.indexToOrb(i,0);
+							size_t l3 = param.indexToOrb(j,1); size_t l4 = param.indexToOrb(j,0);
+
+							// ComplexType c1 = ak(l4,band2)  * conj(ak(l2,band2))
+							// 	           * akq(l1,band1) * conj(akq(l3,band1));
+
+							ComplexType c1 = computeM(l1+(x*nOrbSite),l2+(x*nOrbSite),l3+(y*nOrbSite),l4+(y*nOrbSite),band1,band2,ak,akq);
+
+							chi0matrix(i,j) += c1*r1 ;
+
+							if (kMap_ && l1==l2 && l3==l4) chi0k[ik] += imag(c1*r1);
+
+						}
+					}
+				}
+			}
+			for (size_t i=0;i<msize;i++) for (size_t j=i;j<msize;j++)
+					chi0matrix(i,j) /= ComplexType(kmesh.nktot,0.0);
+			chi0matrix.setLowerTriangle();
+			if (kMap_) printChi0k(q);
+
+		}
+
 
 		// Generator for w=0, Delta=0 calculation
 		calcChi0Matrix(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
@@ -378,7 +443,7 @@ namespace rpa {
 
 		}
 
-		// Generator for w=0, Delta=0 calculation
+		// optimized Generator for w=0, Delta=0 calculation
 		calcChi0Matrix(const rpa::parameters<Field,MatrixTemplate,ConcurrencyType>& parameters,
 			const momentumDomain<Field,psimag::Matrix,ConcurrencyType>& kmeshIn,
 			BandsType& bandsIn,

@@ -270,9 +270,16 @@ namespace rpa {
 					int j = v[rindex-iQ*vindex][1];
 
 					if (conc.rank() == 0) std::cerr << "now calculating x,y: " << i << " , " << j << std::endl;
+					if (wmin_==0.0 && wmax_ == 0.0)
+					{
+						calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
+						 		calcChi0(param,kmesh,bands,q,conc,chi0Matrix[i][j][iQ],i,j,false,param.calcOnlyDiagonal);
+					 } else {
+						 calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
+								calcChi0(param,kmesh,bands,q,conc,chi0Matrix[i][j][iQ],i,j,QVec[iQ][3]);
+					 }
 
-					calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
-						 calcChi0(param,kmesh,bands,q,conc,chi0Matrix[i][j][iQ],i,j,false,param.calcOnlyDiagonal);
+
 						 if (conc.rank()==0) {
 		 					std::cout.precision(7);
 		 					std::cout << "iQ = " << iQ << " q= " << q

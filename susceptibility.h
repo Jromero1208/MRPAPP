@@ -161,7 +161,7 @@ namespace rpa {
 				// make the split for multisite calculation
 				if (param.nSite == 1) {
 					if (param.Green){
-						calcElements(chi0Matrix[0][0],param.Green);
+						calcElements(chi0Matrix[0][0],param.Green,param.tbfile);
 					} else {
 						calcElements(chi0Matrix[0][0],param.tbfile);
 					}
@@ -299,9 +299,11 @@ namespace rpa {
 		}
 
 		//calcElements for green
-		void calcElements(VectorSuscType& chi0Matrix, bool paramg) {
+		void calcElements(VectorSuscType& chi0Matrix, bool paramg, std::string file) {
 
-			BandsType bands(param,conc);
+			momentumDomain<Field,psimag::Matrix,ConcurrencyType> kmesh(param,conc,param.nkInt,param.nkIntz,param.dimension);
+			kmesh.set_momenta(false);
+			BandsType bands(param,conc,kmesh,false,file);
 			RangeType range(0,QVec.size(),conc);
 
 			// SuscType chi0QW(param,conc);
@@ -312,6 +314,8 @@ namespace rpa {
 
 				calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
 				calcChi0(param,bands,q,numberOfQ,conc,chi0Matrix[iQ],iQ,qtok[iQ],g);
+
+				calcChi0(param,kmesh,bands,q,conc,chi0Matrix[iQ],false,param.calcOnlyDiagonal);
 
 				if (conc.rank()==0) {
 					std::cout.precision(7);

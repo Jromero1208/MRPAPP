@@ -277,8 +277,7 @@ namespace rpa {
 			ComplexMatrixType ak(nOrb,nOrb), akq(nOrb,nOrb), susTerm(nOrb,nOrb);
 
 
-			for (size_t i=0;i<msize;i++) for (size_t j=i;j<msize;j++)
-					chi0matrix(i,j) = ComplexType(0.0,0.0);
+			//for (size_t i=0;i<msize;i++) for (size_t j=i;j<msize;j++) chi0matrix(i,j) = ComplexType(0.0,0.0);
 
 			for (size_t ik = 0; ik < kmesh.nktot; ++ik)	{
 				kmesh.momenta.getRow(ik,k);
@@ -410,7 +409,9 @@ namespace rpa {
 					chi0matrix(i,j) = ComplexType(0.0,0.0);
 
 			for (size_t ik = 0; ik < kmesh.nktot; ++ik)	{
+
 				kmesh.momenta.getRow(ik,k);
+				//std::cerr << "ik , k:" << ik << "," << k << std::endl;
 				for (size_t i = 0; i < 3; ++i) kq[i] = k[i] + q[i];
 				bands.getEkAndAk(k,ek,ak);
 				bands.getEkAndAk(kq,ekq,akq);
@@ -479,7 +480,7 @@ namespace rpa {
 
 			for (size_t ik = 0; ik < kmesh.nktot; ++ik)	{
 				kmesh.momenta.getRow(ik,k);
-				//if (ik < 3) std::cerr << "ik , k:" << ik << "," << k << std::endl;
+				//std::cerr << "ik , k:" << ik << "," << k << std::endl;
 
 				for (size_t i = 0; i < 3; ++i) kq[i] = k[i] + q[i];
 				bands.getEkAndAk(k,ek,ak);
@@ -611,21 +612,30 @@ namespace rpa {
 		{
 			size_t nwn = param.nwn;
 			size_t nktot = size_t(pow(param.nkInt,param.dimension));
-			VectorType k(3);
+			VectorType k(3),kq(3);
+			VectorType ek(nOrb,0),ekq(nOrb,0);
+			ComplexMatrixType ak(nOrb,nOrb), akq(nOrb,nOrb);
 			//green.momentumDomain1.momenta.getRow(qtok,k);
 			//std::cerr << "This is iq vector in Green:" << k << std::endl;
 			for (size_t ik = 0; ik < nktot; ++ik)
 			{
 				size_t ikq = green.momentumDomain1.indexOfAdd(qtok,ik);
-				//green.momentumDomain1.momenta.getRow(ikq,k);
-				/*if (ik == 0 || ik == 1 || ik == 2)
-				{
+				green.momentumDomain1.momenta.getRow(ikq,kq);
+
+				kmesh.momenta.getRow(ik,k);
+
+				bands.getEkAndAk(k,ek,ak);
+				bands.getEkAndAk(kq,ekq,akq);
+				//if (ik == 0 || ik == 1 || ik == 2)
+				/*{
 					std::cerr << "ik, ikq = "<< ik << " " << ikq << " vector of ikq =" << k << std::endl;
 				}*/
 				for (int iw = 0; iw < nwn; ++iw)
 				{
 					size_t ind1 = iw + (ik  * nwn);
 					size_t ind2 = iw + (ikq * nwn);
+					Field iwn = (2*iw+1)*param.pi_f*param.temperature;
+					ComplexType c2, c4;
 					for (size_t l1 = 0; l1 < nOrb; ++l1)
 					{
 						for (size_t l2 = 0; l2 < nOrb; ++l2)
@@ -636,12 +646,17 @@ namespace rpa {
 								{
 									size_t iorb1 = l2 + l1 * nOrb;
 									size_t iorb2 = l4 + l3 * nOrb;
-									//std::cerr << "iorb1 is " << iorb1 << " and iorb2 is " << iorb2 << std::endl;
-									//std::cerr << "ind1 is " << ind1 << " and ind2 is " << ind2 << std::endl;
-									//std::cerr << "greens1 greens2: " << green(ind1,iorb1) << " " << green(ind2,iorb2) << std::endl;
-									// chi0matrix[iq](iorb1,iorb2) += g(ind1,iorb1) * g(ind2,iorb2);
-									chi0matrix(iorb1,iorb2) += (real(green(ind1,iorb1) * green(ind2,iorb2)));
+
+									ComplexType c2(0.0),c4(0.0);
+									for (size_t iband = 0; iband < nOrb; ++iband)
+									{
+										ComplexType c1 = ak(l1,iband) * conj(ak(l2,iband));
+										c2 += ComplexType(1.)/(ComplexType(-ek[iband] + param.mu,iwn)) * c1;
+									  ComplexType c3 = akq(l3,iband) * conj(akq(l4,iband));
+										c4 += ComplexType(1.)/(ComplexType(-ekq[iband] + param.mu,iwn)) * c3;
+									}
 									//chi0matrix(iorb1,iorb2) += green(ind1,iorb1) * green(ind2,iorb2);
+									chi0matrix(iorb1,iorb2) += (real(green(ind1,iorb1) * green(ind2,iorb2))) - real(c2*c4);
 								}
 							}
 						}

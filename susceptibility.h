@@ -315,7 +315,8 @@ namespace rpa {
 				calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
 				calcChi0(param,bands,q,numberOfQ,conc,chi0Matrix[iQ],iQ,qtok[iQ],g);
 
-				calcChi0(param,kmesh,bands,q,conc,chi0Matrix[iQ],false,param.calcOnlyDiagonal);
+				calcChi0Matrix<FieldType,SuscType,BandsType,GapType,MatrixTemplate,ConcurrencyType>
+				calcChi0adj(param,kmesh,bands,q,conc,chi0Matrix[iQ],false,param.calcOnlyDiagonal);
 
 				if (conc.rank()==0) {
 					std::cout.precision(7);
@@ -573,8 +574,13 @@ namespace rpa {
 				size_t nkz = g.momentumDomain1.nkz;
 				size_t nk = g.momentumDomain1.nk;
 
-				for (size_t iq2=0;iq2<= ((numberOfQ/2));iq2++){
+				for (size_t iq2=0;((numberOfQ/2)) >= iq2;iq2++){
 					size_t iq3 = iq2 + (numberOfQ/2);
+					//std::cerr << "iq2:" << iq2 << " iq3:" << iq3 << std::endl;
+					if (iq3 >= numberOfQ) {
+						iq3=0;
+						//std::cerr << "the value is reset"<< std::endl;
+					}
 
 					size_t qtok3 = 0;
 					if (nq3 > 1) qtok3 = ((float)iq3 / (float)nq3) * nkz;
@@ -582,6 +588,8 @@ namespace rpa {
 						size_t qtok2 = ((float)iq3 / (float)numberOfQ) * nk;
 
 							size_t qtok1 = ((float)iq3 / (float)numberOfQ) * nk;
+
+
 
 
 
@@ -616,9 +624,14 @@ namespace rpa {
 				QVec[index][2] = momenta(iq,2);
 				QVec[index][3] = omega[iw];
 				qtok[iq] = qtokindex[iq];
+				if (iq==(numberOfQ/2)) {
+					for (size_t l = 0; l < 3; l++) {
+						QVec[index][l] *= -1;
+					}
+				}
 			}
 
-			QVec.resize(numberOfQ/2);
+			QVec.resize((numberOfQ/2)+1);
 
 
 		}
